@@ -6,7 +6,8 @@ import os
 
 def preprocess():
     # os.mkdir(dst)
-    for each in os.listdir(src):
-        img = PIL.imread(os.path.join(src, each))
-        img = PIL.resize(img, (256, 256))
-        PIL.imwrite(os.path.join(dst, each), img)
+    def _parse_function(filename):
+        image_string = tf.read_file(filename)
+        image_decoded = tf.image.decode_jpeg(image_string)
+        image_resized = tf.image.resize_images(image_decoded, [28, 28])
+        return image_resized
