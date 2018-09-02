@@ -80,3 +80,30 @@ class Discriminator(tf.keras.Model):
         x = self.flatten(x)
         x = self.fc1(x)
         return x
+
+
+generator = Generator()
+discriminator = Discriminator()
+
+
+def discriminator_loss(real_output, generated_output):
+    # [1,1,...,1] with real output since it is true and we want
+    # our generated examples to look like it
+    real_loss = tf.losses.sigmoid_cross_entropy(
+        multi_class_labels=tf.ones_like(real_output), logits=real_output)
+
+    # [0,0,...,0] with generated images since they are fake
+    generated_loss = tf.losses.sigmoid_cross_entropy(
+        multi_class_labels=tf.zeros_like(generated_output), logits=generated_output)
+
+    total_loss = real_loss + generated_loss
+
+    return total_loss
+
+
+def generator_loss(generated_output):
+    return tf.losses.sigmoid_cross_entropy(tf.ones_like(generated_output), generated_output)
+
+
+discriminator_optimizer = tf.train.AdamOptimizer(1e-4)
+generator_optimizer = tf.train.AdamOptimizer(1e-4)
