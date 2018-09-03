@@ -158,12 +158,12 @@ def generate_and_save_images(model, epoch, test_input):
     # don't want to train the batchnorm layer when doing inference.
     predictions = model(test_input, training=False)
 
-    fig = plt.figure(figsize=(100, 100))
+    fig = plt.figure(figsize=(10, 10))
 
     for i in range(predictions.shape[0]):
         i = 0
-        plt.subplot(50, 50, i + 1)
-        plt.imshow(predictions[i, :, :, 0] * 127.5 + 127.5, cmap='gray')
+        plt.subplot(11, 11, i + 1)
+        plt.imshow(predictions[i, :, :, 0] * 127.5 + 127.5 / 255)
         plt.axis('off')
 
     plt.savefig('image_at_epoch_{:04d}.png'.format(epoch))
