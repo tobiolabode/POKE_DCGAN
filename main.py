@@ -148,7 +148,7 @@ checkpoint = tf.train.Checkpoint(generator_optimizer=generator_optimizer,
 EPOCHS = 150
 noise_dim = 100
 num_examples_to_generate = 15
-
+version = 2
 # keeping the random vector constant for generation (prediction) so
 # it will be easier to see the improvement of the gan.
 latent_space = tf.random_normal([num_examples_to_generate,
@@ -168,7 +168,7 @@ def generate_and_save_images(model, epoch, test_input):
         #plt.imshow(predictions[i, :, :, 0] * 127.5 + 127.5 / 255)
         plt.axis('off')
 
-    plt.savefig('images/image_at_epoch_{:04d}.png'.format(epoch))
+    plt.savefig('images/image_at_epoch_{:04d}_{}.png'.format(epoch, version))
     # plt.show()
 
 
