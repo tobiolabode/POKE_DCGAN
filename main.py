@@ -1,42 +1,64 @@
 import tensorflow as tf
-import PIL
+tf.enable_eager_execution()
+from PIL import Image
 import numpy as np
 import os
 import matplotlib.pyplot as plt
 import time
+import matplotlib.image as mpimg
 
-mylist = os.listdir("./data")
+mylist = os.listdir("./data/")
+i = iter(mylist)
+
+mylist2 = [os.path.join("data/", next(i)) for fname in mylist if os.path.isfile]
+# print(mylist2)
+
+# TODO:
+# add input_shape() to 1st conv layers
+# reshape images to 4D
+# maybe make thowway labels
 
 
 def _parse_function(filename):
+    #image_string = tf.read_file(filename)
     image_string = tf.read_file(filename)
-    image_decoded = tf.image.decode_jpeg(image_string)
-    image_resized = tf.image.resize_images(image_decoded, [28, 28])
-    return image_resized
+    decoded_image = tf.image.decode_png(image_string, channels=3)
+    resize = tf.image.resize_images(decoded_image, [128, 128])
+    return resize
+
+# _ = tf.expand_dims(image_resized, axis=3)
+
+# batch, channels, rows, cols input
 
 
-dataset = tf.data.Dataset.from_tensor_slices((mylist))
+# i = iter(mylist2)
+# readarray = _parse_function(next(i))
+# readarray = readarray.reshape(readarray.shape[2], 64, 64, 1)
+
+
+dataset = tf.data.Dataset.from_tensor_slices(mylist2)
 dataset = dataset.map(_parse_function)
-Bdataset = dataset.batch(10)
-
-iterator = Bdataset.make_one_shot_iterator()
-next_element = iterator.get_next()
+Bdataset = dataset.batch(10, drop_remainder=False)
 
 
-print(dataset)
-print(Bdataset)
-print(iterator)
-print(next_element)
+#iterator = Bdataset.make_one_shot_iterator()
+#next_element = iterator.get_next()
+
+
+# print(dataset)
+# print(Bdataset)
+# print(iterator)
+# print(next_element)
 
 
 class Generator(tf.keras.Model):
     def __init__(self):
         super(Generator, self).__init__()
-        self.fc1 = tf.keras.layers.Dense(7 * 7 * 64, use_bias=False)
+        self.fc1 = tf.keras.layers.Dense(64 * 64 * 3, use_bias=False)
         self.batchnorm1 = tf.keras.layers.BatchNormalization()
 
         self.conv1 = tf.keras.layers.Conv2DTranspose(
-            64, (5, 5), strides=(1, 1), padding='same', use_bias=False)
+            64, (5, 5), strides=(1, 1), padding='same', use_bias=False, input_shape=(128, 128, 3))
         self.batchnorm2 = tf.keras.layers.BatchNormalization()
 
         self.conv2 = tf.keras.layers.Conv2DTranspose(
@@ -44,14 +66,14 @@ class Generator(tf.keras.Model):
         self.batchnorm3 = tf.keras.layers.BatchNormalization()
 
         self.conv3 = tf.keras.layers.Conv2DTranspose(
-            1, (5, 5), strides=(2, 2), padding='same', use_bias=False)
+            3, (5, 5), strides=(2, 2), padding='same', use_bias=False)
 
     def call(self, x, training=True):
         x = self.fc1(x)
         x = self.batchnorm1(x, training=training)
         x = tf.nn.relu(x)
 
-        x = tf.reshape(x, shape=(-1, 7, 7, 64))
+        x = tf.reshape(x, shape=(-1, 32, 32, 3))
 
         x = self.conv1(x)
         x = self.batchnorm2(x, training=training)
@@ -68,7 +90,8 @@ class Generator(tf.keras.Model):
 class Discriminator(tf.keras.Model):
     def __init__(self):
         super(Discriminator, self).__init__()
-        self.conv1 = tf.keras.layers.Conv2D(64, (5, 5), strides=(2, 2), padding='same')
+        self.conv1 = tf.keras.layers.Conv2D(64, (5, 5), strides=(
+            2, 2), padding='same', input_shape=(128, 128, 3))
         self.conv2 = tf.keras.layers.Conv2D(128, (5, 5), strides=(2, 2), padding='same')
         self.dropout = tf.keras.layers.Dropout(0.3)
         self.flatten = tf.keras.layers.Flatten()
@@ -79,6 +102,7 @@ class Discriminator(tf.keras.Model):
         x = self.dropout(x, training=training)
         x = tf.nn.leaky_relu(self.conv2(x))
         x = self.dropout(x, training=training)
+        #x = tf.reshape(x, shape=(-1, 4, 4, 512))
         x = self.flatten(x)
         x = self.fc1(x)
         return x
@@ -111,14 +135,22 @@ discriminator_optimizer = tf.train.AdamOptimizer(1e-4)
 generator_optimizer = tf.train.AdamOptimizer(1e-4)
 
 
+checkpoint_dir = './training_checkpoints'
+checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
+checkpoint = tf.train.Checkpoint(generator_optimizer=generator_optimizer,
+                                 discriminator_optimizer=discriminator_optimizer,
+                                 generator=generator,
+                                 discriminator=discriminator)
+
+
 EPOCHS = 150
 noise_dim = 100
-num_examples_to_generate = 16
+num_examples_to_generate = 15
 
 # keeping the random vector constant for generation (prediction) so
 # it will be easier to see the improvement of the gan.
-Latet_space = tf.random_normal([num_examples_to_generate,
-                                noise_dim])
+latent_space = tf.random_normal([num_examples_to_generate,
+                                 noise_dim])
 
 
 def generate_and_save_images(model, epoch, test_input):
@@ -126,10 +158,11 @@ def generate_and_save_images(model, epoch, test_input):
     # don't want to train the batchnorm layer when doing inference.
     predictions = model(test_input, training=False)
 
-    fig = plt.figure(figsize=(4, 4))
+    fig = plt.figure(figsize=(100, 100))
 
     for i in range(predictions.shape[0]):
-        plt.subplot(4, 4, i + 1)
+        i = 0
+        plt.subplot(50, 50, i + 1)
         plt.imshow(predictions[i, :, :, 0] * 127.5 + 127.5, cmap='gray')
         plt.axis('off')
 
@@ -143,7 +176,7 @@ def train(dataset, epochs, noise_dim):
 
         for images in dataset:
             # generating noise from a uniform distribution
-            noise = tf.random_normal([BATCH_SIZE, noise_dim])
+            noise = tf.random_normal([10, noise_dim])
 
             with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
                 generated_images = generator(noise, training=True)
@@ -162,10 +195,10 @@ def train(dataset, epochs, noise_dim):
                 zip(gradients_of_discriminator, discriminator.variables))
 
         if epoch % 1 == 0:
-            display.clear_output(wait=True)
+            plt.imshow(generated_output)
             generate_and_save_images(generator,
                                      epoch + 1,
-                                     random_vector_for_generation)
+                                     latent_space)
 
         # saving (checkpoint) the model every 15 epochs
         if (epoch + 1) % 15 == 0:
@@ -174,7 +207,10 @@ def train(dataset, epochs, noise_dim):
         print('Time taken for epoch {} is {} sec'.format(epoch + 1,
                                                          time.time() - start))
     # generating after the final epoch
-    display.clear_output(wait=True)
+    plt.imshow(generated_output)
     generate_and_save_images(generator,
                              epochs,
-                             random_vector_for_generation)
+                             latent_space)
+
+
+train(Bdataset, EPOCHS, noise_dim)
