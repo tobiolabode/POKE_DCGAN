@@ -3,6 +3,7 @@ tf.enable_eager_execution()
 from PIL import Image
 import numpy as np
 import os
+import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import time
