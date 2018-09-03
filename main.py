@@ -163,7 +163,7 @@ def generate_and_save_images(model, epoch, test_input):
     for i in range(predictions.shape[0]):
         i = 0
         plt.subplot(11, 11, i + 1)
-        plt.imshow(predictions[i, :, :, 0] * 127.5 + 127.5 / 255)
+        #plt.imshow(predictions[i, :, :, 0] * 127.5 + 127.5 / 255)
         plt.axis('off')
 
     plt.savefig('image_at_epoch_{:04d}.png'.format(epoch))
@@ -195,7 +195,7 @@ def train(dataset, epochs, noise_dim):
                 zip(gradients_of_discriminator, discriminator.variables))
 
         if epoch % 1 == 0:
-            plt.imshow(generated_output)
+            # plt.imshow(generated_output)
             generate_and_save_images(generator,
                                      epoch + 1,
                                      latent_space)
