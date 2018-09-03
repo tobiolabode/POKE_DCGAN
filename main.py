@@ -167,7 +167,7 @@ def generate_and_save_images(model, epoch, test_input):
         plt.axis('off')
 
     plt.savefig('image_at_epoch_{:04d}.png'.format(epoch))
-    plt.show()
+    # plt.show()
 
 
 def train(dataset, epochs, noise_dim):
@@ -207,7 +207,7 @@ def train(dataset, epochs, noise_dim):
         print('Time taken for epoch {} is {} sec'.format(epoch + 1,
                                                          time.time() - start))
     # generating after the final epoch
-    plt.imshow(generated_output)
+    # plt.imshow(generated_output)
     generate_and_save_images(generator,
                              epochs,
                              latent_space)
